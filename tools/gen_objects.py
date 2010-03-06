@@ -30,8 +30,11 @@ TEMPLATE=    """
             return NULL; \\
         } \\
         } 
+    #define Py%(name)s_Test(obj) (PyObject_TypeCheck((PyObject *)obj, &cuda_Py%(name)sType))
     #define NEW_Py%(name)s ((Py%(name)s*) _PyObject_New((PyTypeObject *)&cuda_Py%(name)sType))
     
+    static int Py%(name)s_Compare(PyObject *o1, PyObject *o2);
+
     static PyTypeObject cuda_Py%(name)sType = {
         PyObject_HEAD_INIT(NULL)
         0,                         /*ob_size*/
@@ -42,7 +45,7 @@ TEMPLATE=    """
         0,                         /*tp_print*/
         0,                         /*tp_getattr*/
         0,                         /*tp_setattr*/
-        0,                         /*tp_compare*/
+         Py%(name)s_Compare,      /*tp_compare*/
         0,                         /*tp_repr*/
         0,                         /*tp_as_number*/
         0,                         /*tp_as_sequence*/
@@ -56,6 +59,21 @@ TEMPLATE=    """
         Py_TPFLAGS_DEFAULT, 	  /*tp_flags*/
         "%(name)s"
     };
+
+    static int Py%(name)s_Compare(PyObject *o1, PyObject *o2){
+         if (!Py%(name)s_Test(o1) ){
+             return -1;
+         }
+         if (!Py%(name)s_Test(o2) ){
+             return -1;
+         }
+         int cmp = memcmp(&((Py%(name)s*)o1)->%(field)s, &((Py%(name)s*)o2)->%(field)s, sizeof(%(name)s));
+         if ( cmp == 0){
+             return 0;
+         }
+         printf(\"%%d\\n\",cmp);
+         return -1;
+    }    
     """
 for name in structs:
     if name.lower().startswith('cuda'):

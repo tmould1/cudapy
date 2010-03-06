@@ -8,6 +8,7 @@
 			return NULL; \
 		}
 
+
 #include "cuda_enums_gen.h";
 #include "cuda_objects_gen.h";
 
@@ -197,7 +198,57 @@ cuda_cuCtxDestroy(PyObject *self, PyCUcontext* ctx){
 	unsigned int flags;
 	PyCUcontext_Check(ctx);
 	CU_CALL(cuCtxDestroy,(ctx->context));
-	return (PyObject *)ctx;
+	Py_RETURN_NONE;
+}
+
+static PyObject *
+cuda_cuCtxAttach(PyObject *self, PyIntObject* flags){
+	PyCUcontext *ctx = NEW_PyCUcontext;
+	unsigned int iflags;
+	if(!PyInt_Check(flags)){
+		PyErr_SetString(PyExc_TypeError,"argument must be a int");
+		return NULL;
+	}
+	iflags = PyInt_AsLong(flags);
+	CU_CALL(cuCtxAttach,(&ctx->context, iflags));
+	return (PyObject*)ctx;
+}
+
+static PyObject *
+cuda_cuCtxDetach(PyObject *self, PyCUcontext* ctx){
+	unsigned int flags;
+	PyCUcontext_Check(ctx);
+	CU_CALL(cuCtxDetach,(ctx->context));
+	Py_RETURN_NONE;
+}
+
+static PyObject *
+cuda_cuCtxPushCurrent(PyObject *self, PyCUcontext* ctx){
+	unsigned int flags;
+	PyCUcontext_Check(ctx);
+	CU_CALL(cuCtxPushCurrent,(ctx->context));
+	Py_RETURN_NONE;
+}
+static PyObject *
+cuda_cuCtxPopCurrent(PyObject *self, PyObject* _){
+	PyCUcontext *ctx = NEW_PyCUcontext;
+	if (!ctx) return NULL;
+	CU_CALL(cuCtxPopCurrent,(&ctx->context));
+	return (PyObject*) ctx;
+}
+
+static PyObject *
+cuda_cuCtxGetDevice(PyObject *self, PyObject* obj){
+	PyCUdevice *dev = NEW_PyCUdevice;
+	if (!dev) return NULL;
+	CU_CALL(cuCtxGetDevice,(&dev->device));
+	return (PyObject *)dev;
+}
+
+static PyObject *
+cuda_cuCtxSynchronize(PyObject *self, PyObject* obj){
+	CU_CALL(cuCtxSynchronize,());
+	Py_RETURN_NONE;
 }
 
 static PyMethodDef CudaMethods[] = {
@@ -213,9 +264,17 @@ static PyMethodDef CudaMethods[] = {
     {"cuDeviceTotalMem", (PyCFunction)cuda_cuDeviceTotalMem, METH_O,    ""},
     /* TODO: cuDeviceGetProperties(CUdevprop *prop, CUdevice dev); */
     {"cuDeviceGetAttribute", (PyCFunction)cuda_cuDeviceGetAttribute, METH_VARARGS, ""},
+
     /* Context management */
     {"cuCtxCreate", (PyCFunction)cuda_cuCtxCreate, METH_VARARGS, ""},
     {"cuCtxDestroy", (PyCFunction)cuda_cuCtxDestroy, METH_O, ""},
+    {"cuCtxAttach", (PyCFunction)cuda_cuCtxAttach, METH_O, ""},
+    {"cuCtxDetach", (PyCFunction)cuda_cuCtxDetach, METH_O, ""},
+    {"cuCtxPushCurrent", (PyCFunction) cuda_cuCtxPushCurrent, METH_O, "" },
+    {"cuCtxPopCurrent" , (PyCFunction) cuda_cuCtxPopCurrent, METH_NOARGS, ""},
+    {"cuCtxGetDevice"  , (PyCFunction) cuda_cuCtxGetDevice, METH_NOARGS, ""},
+    {"cuCtxSynchronize", (PyCFunction) cuda_cuCtxSynchronize,METH_NOARGS, ""},
+
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
