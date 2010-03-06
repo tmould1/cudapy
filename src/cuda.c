@@ -63,6 +63,10 @@ static PyObject *CudaError;
 
 /* End error message handling */
 
+// "Initializes the driver API and must be called before any other function from the driver API."
+// "Currently, the Flags parameter must be 0. "
+// "If cuInit() has not been called, any function from the driver API will return CUDA_ERROR_NOT_INITIALIZED"
+
 static PyObject *
 cuda_cuInit(PyObject *self, PyObject *args)
 {
@@ -87,21 +91,21 @@ typedef struct {
     PyObject_HEAD
     /* Type-specific fields go here. */
     CUdevice device;
-} cuDevice;
+} PyCUdevice;
 
 
 /*---------------------------------------------------------------------------*/
 static PyObject *
 cuDevice_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-    cuDevice *self;
+    PyCUdevice *self;
 
-    self = (cuDevice *)type->tp_alloc(type, 0);
+    self = (PyCUdevice *)type->tp_alloc(type, 0);
 
     return (PyObject *)self;
 }
 static int
-cuDevice_init(cuDevice *self, PyObject *args, PyObject *kwds)
+cuDevice_init(PyCUdevice *self, PyObject *args, PyObject *kwds)
 {
 	int ordinal;
 	if (!PyArg_ParseTuple(args,"i",&ordinal)){
@@ -116,7 +120,7 @@ cuDevice_init(cuDevice *self, PyObject *args, PyObject *kwds)
 	return 0;
 }
 static PyObject *
-cuDevice_compute_capability(cuDevice* self) {
+cuDevice_compute_capability(PyCUdevice* self) {
     int minor, mayor;
     CUresult res;
     PyObject *result;
@@ -143,7 +147,7 @@ static PyTypeObject cuda_cuDeviceType = {
     PyObject_HEAD_INIT(NULL)
     0,                         /*ob_size*/
     "cuda.CUdevice",           /*tp_name*/
-    sizeof(cuDevice),/*tp_basicsize*/
+    sizeof(PyCUdevice),/*tp_basicsize*/
     0,                         /*tp_itemsize*/
     0,                         /*tp_dealloc*/
     0,                         /*tp_print*/
@@ -183,13 +187,59 @@ static PyTypeObject cuda_cuDeviceType = {
 
 
 
-// "Initializes the driver API and must be called before any other function from the driver API."
-// "Currently, the Flags parameter must be 0. "
-// "If cuInit() has not been called, any function from the driver API will return CUDA_ERROR_NOT_INITIALIZED"
+static PyObject *
+cuda_cuDeviceGetCount(PyObject *self, PyObject *args)
+{
+	int count;
+	CUresult res = cuDeviceGetCount(&count);
+    if(res != CUDA_SUCCESS){
+    	PyErr_SetString(CudaError, findErrorMsg(res));
+        return NULL;
+    }
+    PyObject *valueobj;
+    valueobj = Py_BuildValue("i",count);
+    if (valueobj != NULL){
+    	Py_INCREF(valueobj);
+    }
+    return valueobj;
+}
 
+#define CU_CALL(NAME,ARGS) \
+		CUresult res = NAME ARGS; \
+		if( res != CUDA_SUCCESS) { \
+			PyErr_SetString(CudaError, findErrorMsg(res)); \
+			return NULL; \
+		}
+
+#define PyCUdevice_Check(obj) (PyObject_TypeCheck((PyObject *)obj, &cuda_cuDeviceType))
+static PyObject *
+cuda_cuDeviceComputeCapability(PyObject *self, PyCUdevice* device) {
+    int minor, mayor;
+
+    if (!PyCUdevice_Check(device)){
+    	PyErr_Format(PyExc_TypeError,
+    	                     "argument must be a CUdevice, not %.80s",
+    	                     Py_TYPE(device)->tp_name);
+    	return NULL;
+    }
+    CU_CALL( cuDeviceComputeCapability, (&mayor, &minor, device->device));
+    return Py_BuildValue("ii", mayor, minor);
+}
+
+static PyObject *
+cuda_cuDeviceGet(PyObject *self, PyObject* obj){
+	PyCUdevice *dev = (PyCUdevice*) _PyObject_New((PyTypeObject *)&cuda_cuDeviceType);
+	if (!dev) return NULL;
+	int ordinal = PyInt_AsLong(obj);
+	CU_CALL(cuDeviceGet,(&dev->device,ordinal));
+	return (PyObject *)dev;
+}
 
 static PyMethodDef CudaMethods[] = {
     {"cuInit",  cuda_cuInit, METH_VARARGS,  "Execute a shell command."},
+    {"cuDeviceGet", cuda_cuDeviceGet, METH_O, ""},
+    {"cuDeviceComputeCapability", cuda_cuDeviceComputeCapability, METH_O,    ""},
+    {"cuDeviceGetCount", cuda_cuDeviceGetCount, METH_NOARGS, "" },
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
