@@ -8,6 +8,7 @@
 			return NULL; \
 		}
 
+#include "cuda_enums_gen.h";
 #include "cuda_objects_gen.h";
 
 static struct {
@@ -211,7 +212,6 @@ initcuda(void)
     Py_INCREF(CudaError);
     PyModule_AddObject(m, "error", CudaError);
 
-    // cuDevice
     init_types(m);
-	#include "cuda_enums_gen.h";
+    init_enums(m);
 }
