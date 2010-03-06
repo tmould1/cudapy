@@ -109,7 +109,10 @@ cuDevice_init(cuDevice *self, PyObject *args, PyObject *kwds)
 	}
 
 	CUresult res = cuDeviceGet(&self->device, ordinal);
-
+	if (res != CUDA_SUCCESS){
+		PyErr_SetString(CudaError, findErrorMsg(res));
+		return -1;
+	}
 	return 0;
 }
 static PyObject *
@@ -119,7 +122,7 @@ cuDevice_compute_capability(cuDevice* self) {
     PyObject *result;
     res = cuDeviceComputeCapability(&mayor, &minor, self->device);
     if (res != CUDA_SUCCESS){
-
+		PyErr_SetString(CudaError, findErrorMsg(res));
     }
     result  = Py_BuildValue("ii", mayor, minor);
     if (result == NULL)
