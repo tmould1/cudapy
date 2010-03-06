@@ -107,7 +107,7 @@ cuda_cuDriverGetVersion(PyObject *self, PyObject *args){
  ***********************************/
 static PyObject *
 cuda_cuDeviceGet(PyObject *self, PyObject* obj){
-	PyCUdevice *dev = (PyCUdevice*) _PyObject_New((PyTypeObject *)&cuda_PyCUdeviceType);
+	PyCUdevice *dev = NEW_PyCUdevice;
 	if (!dev) return NULL;
 	int ordinal = PyInt_AsLong(obj);
 	CU_CALL(cuDeviceGet,(&dev->device,ordinal));
@@ -134,10 +134,7 @@ cuda_cuDeviceGetCount(PyObject *self, PyObject *args)
 // CUresult  CUDAAPI cuDeviceGetName(char *name, int len, CUdevice dev);
 static PyObject *
 cuda_cuDeviceGetName(PyObject *self, PyCUdevice* device) {
-    if (!PyCUdevice_Check(device)){
-    	PyErr_SetString(PyExc_TypeError, "argument must be a CUdevice");
-    	return NULL;
-    }
+    PyCUdevice_Check(device);
     char name_buff[256] = {0};
     CU_CALL( cuDeviceGetName, (name_buff, 256, device->device));
     return PyString_FromStringAndSize(name_buff, 256);
@@ -147,11 +144,7 @@ static PyObject *
 cuda_cuDeviceComputeCapability(PyObject *self, PyCUdevice* device) {
     int minor, mayor;
 
-    if (!PyCUdevice_Check(device)){
-    	PyErr_SetString(PyExc_TypeError,
-    	                     "argument must be a CUdevice");
-    	return NULL;
-    }
+    PyCUdevice_Check(device);
     CU_CALL( cuDeviceComputeCapability, (&mayor, &minor, device->device));
     return Py_BuildValue("ii", mayor, minor);
 }
@@ -160,10 +153,7 @@ cuda_cuDeviceComputeCapability(PyObject *self, PyCUdevice* device) {
 static PyObject *
 cuda_cuDeviceTotalMem(PyObject *self, PyCUdevice* device) {
     unsigned int bytes;
-    if (!PyCUdevice_Check(device)){
-    	PyErr_SetString(PyExc_TypeError,"argument must be a CUdevice");
-    	return NULL;
-    }
+    PyCUdevice_Check(device);
     CU_CALL( cuDeviceTotalMem, (&bytes, device->device));
     return PyInt_FromLong(bytes);
 }
@@ -176,9 +166,38 @@ cuda_cuDeviceGetAttribute(PyObject *self, PyObject* args){
 	if (!PyArg_ParseTuple(args,"iO", &attrib, &dev)){
 		return NULL;
 	}
+    PyCUdevice_Check(dev);
 	int pi;
 	CU_CALL(cuDeviceGetAttribute,(&pi, attrib, dev->device));
 	return PyInt_FromLong(pi);
+}
+
+/************************************
+ **
+ **    Context management
+ **
+ ***********************************/
+/* CUresult  CUDAAPI cuCtxCreate(CUcontext *pctx, unsigned int flags, CUdevice dev ); */
+static PyObject *
+cuda_cuCtxCreate(PyObject *self, PyObject* args){
+	PyCUdevice *dev;
+	unsigned int flags;
+	PyCUcontext *ctx = NEW_PyCUcontext;
+	if (!PyArg_ParseTuple(args,"IO", &flags, &dev)){
+		return NULL;
+	}
+    PyCUdevice_Check(dev);
+	CU_CALL(cuCtxCreate,(&ctx->context, flags, dev->device));
+	return (PyObject *)ctx;
+}
+
+// cuCtxDestroy( CUcontext ctx );
+static PyObject *
+cuda_cuCtxDestroy(PyObject *self, PyCUcontext* ctx){
+	unsigned int flags;
+	PyCUcontext_Check(ctx);
+	CU_CALL(cuCtxDestroy,(ctx->context));
+	return (PyObject *)ctx;
 }
 
 static PyMethodDef CudaMethods[] = {
@@ -192,7 +211,11 @@ static PyMethodDef CudaMethods[] = {
     {"cuDeviceGetName", (PyCFunction)cuda_cuDeviceGetName, METH_O, "" },
     {"cuDeviceComputeCapability", (PyCFunction)cuda_cuDeviceComputeCapability, METH_O,    ""},
     {"cuDeviceTotalMem", (PyCFunction)cuda_cuDeviceTotalMem, METH_O,    ""},
+    /* TODO: cuDeviceGetProperties(CUdevprop *prop, CUdevice dev); */
     {"cuDeviceGetAttribute", (PyCFunction)cuda_cuDeviceGetAttribute, METH_VARARGS, ""},
+    /* Context management */
+    {"cuCtxCreate", (PyCFunction)cuda_cuCtxCreate, METH_VARARGS, ""},
+    {"cuCtxDestroy", (PyCFunction)cuda_cuCtxDestroy, METH_O, ""},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

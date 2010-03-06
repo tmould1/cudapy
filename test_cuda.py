@@ -16,15 +16,17 @@ class SmokeTest(unittest.TestCase):
                 value = getattr(cuda,name)
                 print name,
                 print cuda.cuDeviceGetAttribute(value,dev);
+            ctx = cuda.cuCtxCreate(0,dev)
+            cuda.cuCtxDestroy(ctx)
         
-        cuda.CUcontext()
-        cuda.CUmodule()
-        cuda.CUfunction()
-        cuda.CUarray()
-        cuda.CUtexref()
-        cuda.CUevent()
-        cuda.CUstream()
-        cuda.CUgraphicsResource()
+#        cuda.CUcontext()
+#        cuda.CUmodule()
+#        cuda.CUfunction()
+#        cuda.CUarray()
+#        cuda.CUtexref()
+#        cuda.CUevent()
+#        cuda.CUstream()
+#        cuda.CUgraphicsResource()
         
 class CudaTestCase(unittest.TestCase):
 

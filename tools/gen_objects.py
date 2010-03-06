@@ -9,7 +9,12 @@
 # typedef struct CUgraphicsResource_st *CUgraphicsResource; ///< CUDA graphics interop resource
 
 
-structs = "CUdevice CUcontext CUmodule CUfunction CUarray CUtexref CUevent CUstream CUgraphicsResource".split()
+structs = "CUdevice CUcontext CUmodule CUfunction CUarray CUtexref \
+           CUevent CUstream CUgraphicsResource ".split()
+member_structs = "CUDA_MEMCPY2D CUDA_MEMCPY3D CUDA64_MEMCPY3D CUDA_ARRAY_DESCRIPTOR CUDA_ARRAY3D_DESCRIPTOR CUdevprop".split()
+
+structs.extend(member_structs)
+
 TEMPLATE=    """
     /*-----------------------------------------------------------------------------*/
     typedef struct {
@@ -18,8 +23,15 @@ TEMPLATE=    """
         %(name)s %(field)s;
     } Py%(name)s;
 
-    #define Py%(name)s_Check(obj) (PyObject_TypeCheck((PyObject *)obj, &cuda_Py%(name)sType))
-
+    #define Py%(name)s_Check(obj) \\
+        {                             \\
+        if (!PyObject_TypeCheck((PyObject *)obj, &cuda_Py%(name)sType)){ \\
+            PyErr_SetString(PyExc_TypeError,\"argument must be a %(name)s\");              \\
+            return NULL; \\
+        } \\
+        } 
+    #define NEW_Py%(name)s ((Py%(name)s*) _PyObject_New((PyTypeObject *)&cuda_Py%(name)sType))
+    
     static PyTypeObject cuda_Py%(name)sType = {
         PyObject_HEAD_INIT(NULL)
         0,                         /*ob_size*/
@@ -45,8 +57,12 @@ TEMPLATE=    """
         "%(name)s"
     };
     """
-for s in structs:
-    print TEMPLATE % { 'name' : s, 'field' : s[2:].lower() }
+for name in structs:
+    if name.lower().startswith('cuda'):
+        field = name.lower()
+    else:
+        field = name[len('cu'):]
+    print TEMPLATE % locals()
 
 print "static void init_objects() {"
 for s in structs:
@@ -59,8 +75,8 @@ print "}"
 
 
 print "static void init_types (PyObject *m) {"
-for name in structs:
-    print "Py_INCREF(&cuda_Py%(name)sType);" % locals()
-    print "PyModule_AddObject(m, \"%(name)s\", (PyObject *)&cuda_Py%(name)sType);" % locals()
+# for name in structs:
+#     print "Py_INCREF(&cuda_Py%(name)sType);" % locals()
+#     print "PyModule_AddObject(m, \"%(name)s\", (PyObject *)&cuda_Py%(name)sType);" % locals()
 
 print "}"
