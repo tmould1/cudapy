@@ -9,7 +9,7 @@
 # typedef struct CUgraphicsResource_st *CUgraphicsResource; ///< CUDA graphics interop resource
 
 
-structs = "CUdevice CUcontext CUmodule CUfunction CUarray CUtexref \
+structs = "CUdeviceptr CUdevice CUcontext CUmodule CUfunction CUarray CUtexref \
            CUevent CUstream CUgraphicsResource ".split()
 member_structs = "CUDA_MEMCPY2D CUDA_MEMCPY3D CUDA64_MEMCPY3D CUDA_ARRAY_DESCRIPTOR CUDA_ARRAY3D_DESCRIPTOR CUdevprop".split()
 

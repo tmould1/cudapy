@@ -202,14 +202,14 @@ cuda_cuCtxDestroy(PyObject *self, PyCUcontext* ctx){
 }
 
 static PyObject *
-cuda_cuCtxAttach(PyObject *self, PyIntObject* flags){
+cuda_cuCtxAttach(PyObject *self, PyObject* flags){
 	PyCUcontext *ctx = NEW_PyCUcontext;
 	unsigned int iflags;
 	if(!PyInt_Check(flags)){
 		PyErr_SetString(PyExc_TypeError,"argument must be a int");
 		return NULL;
 	}
-	iflags = PyInt_AsLong(flags);
+	iflags = (long)PyInt_AsLong(flags);
 	CU_CALL(cuCtxAttach,(&ctx->context, iflags));
 	return (PyObject*)ctx;
 }
@@ -251,6 +251,66 @@ cuda_cuCtxSynchronize(PyObject *self, PyObject* obj){
 	Py_RETURN_NONE;
 }
 
+/************************************
+  **
+  **    Module management
+  **
+  ***********************************/
+
+ /* CUresult  CUDAAPI cuModuleLoad(CUmodule *module, const char *fname) */
+static PyObject *
+cuda_cuModuleLoad(PyObject *self, PyObject* fname){
+	if(!PyString_Check(fname)){
+		PyErr_SetString(PyExc_TypeError,"argument must be a string");
+		return NULL;
+	}
+	PyCUmodule *mod = NEW_PyCUmodule;
+	CU_CALL(cuModuleLoad, (&mod->module, PyString_AsString(fname)));
+	return (PyObject*)mod;
+}
+
+/* CUresult  CUDAAPI cuModuleGetFunction(CUfunction *hfunc, CUmodule hmod, const char *name) */
+static PyObject *
+cuda_cuModuleGetFunction(PyObject *self, PyObject* args){
+	PyCUmodule *mod;
+	const char *func_name;
+	if (!PyArg_ParseTuple(args,"Os", &mod, &func_name)){
+		return NULL;
+	}
+	PyCUmodule_Check(mod);
+	PyCUfunction *func = NEW_PyCUfunction;
+	CU_CALL(cuModuleGetFunction, (&func->function, mod->module, func_name));
+	return (PyObject*)func;
+}
+
+/************************************
+ **
+ **    Memory management
+ **
+ ***********************************/
+// CUresult CUDAAPI cuMemGetInfo(unsigned int *free, unsigned int *total);
+
+// CUresult CUDAAPI cuMemAlloc( CUdeviceptr *dptr, unsigned int bytesize);
+static PyObject *
+cuda_cuMemAlloc(PyObject *self, PyObject* args){
+	PyCUdeviceptr *dptr = NEW_PyCUdeviceptr;
+	unsigned int value;
+	if (!PyInt_Check(args)){
+		PyErr_SetString(PyExc_TypeError,"argument must be an int");
+		return NULL;
+	}
+	value = PyInt_AsLong(args);
+	CU_CALL(cuMemAlloc, (&dptr->deviceptr, value));
+	return (PyObject*)dptr;
+}
+// CUresult CUDAAPI cuMemFree(CUdeviceptr dptr);
+static PyObject *
+cuda_cuMemFree(PyObject *self, PyCUdeviceptr* dptr){
+	PyCUdeviceptr_Check(dptr);
+	CU_CALL(cuMemFree, (dptr->deviceptr));
+	Py_RETURN_NONE;
+}
+
 static PyMethodDef CudaMethods[] = {
 	/* Initialization */
     {"cuInit",  (PyCFunction)cuda_cuInit, METH_VARARGS,  "Execute a shell command."},
@@ -275,6 +335,13 @@ static PyMethodDef CudaMethods[] = {
     {"cuCtxGetDevice"  , (PyCFunction) cuda_cuCtxGetDevice, METH_NOARGS, ""},
     {"cuCtxSynchronize", (PyCFunction) cuda_cuCtxSynchronize,METH_NOARGS, ""},
 
+    /* Module Management */
+    {"cuModuleLoad", (PyCFunction) cuda_cuModuleLoad, METH_O, ""},
+    {"cuModuleGetFunction", (PyCFunction) cuda_cuModuleGetFunction, METH_VARARGS, ""},
+
+    /* Memory Management */
+    {"cuMemAlloc", (PyCFunction) cuda_cuMemAlloc, METH_O, ""},
+    {"cuMemFree",  (PyCFunction) cuda_cuMemFree, METH_O,  ""},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

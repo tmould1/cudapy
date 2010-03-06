@@ -3,6 +3,66 @@
     typedef struct {
         PyObject_HEAD
         /* Type-specific fields go here. */
+        CUdeviceptr deviceptr;
+    } PyCUdeviceptr;
+
+    #define PyCUdeviceptr_Check(obj) \
+        {                             \
+        if (!PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUdeviceptrType)){ \
+            PyErr_SetString(PyExc_TypeError,"argument must be a CUdeviceptr");              \
+            return NULL; \
+        } \
+        } 
+    #define PyCUdeviceptr_Test(obj) (PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUdeviceptrType))
+    #define NEW_PyCUdeviceptr ((PyCUdeviceptr*) _PyObject_New((PyTypeObject *)&cuda_PyCUdeviceptrType))
+    
+    static int PyCUdeviceptr_Compare(PyObject *o1, PyObject *o2);
+
+    static PyTypeObject cuda_PyCUdeviceptrType = {
+        PyObject_HEAD_INIT(NULL)
+        0,                         /*ob_size*/
+        "cuda.CUdeviceptr",           /*tp_name*/
+        sizeof(PyCUdeviceptr),/*tp_basicsize*/
+        0,                         /*tp_itemsize*/
+        0,                         /*tp_dealloc*/
+        0,                         /*tp_print*/
+        0,                         /*tp_getattr*/
+        0,                         /*tp_setattr*/
+         PyCUdeviceptr_Compare,      /*tp_compare*/
+        0,                         /*tp_repr*/
+        0,                         /*tp_as_number*/
+        0,                         /*tp_as_sequence*/
+        0,                         /*tp_as_mapping*/
+        0,                         /*tp_hash */
+        0,                         /*tp_call*/
+        0,                         /*tp_str*/
+        0,                         /*tp_getattro*/
+        0,                         /*tp_setattro*/
+        0,                         /*tp_as_buffer*/
+        Py_TPFLAGS_DEFAULT, 	  /*tp_flags*/
+        "CUdeviceptr"
+    };
+
+    static int PyCUdeviceptr_Compare(PyObject *o1, PyObject *o2){
+         if (!PyCUdeviceptr_Test(o1) ){
+             return -1;
+         }
+         if (!PyCUdeviceptr_Test(o2) ){
+             return -1;
+         }
+         int cmp = memcmp(&((PyCUdeviceptr*)o1)->deviceptr, &((PyCUdeviceptr*)o2)->deviceptr, sizeof(CUdeviceptr));
+         if ( cmp == 0){
+             return 0;
+         }
+         printf("%d\n",cmp);
+         return -1;
+    }    
+    
+
+    /*-----------------------------------------------------------------------------*/
+    typedef struct {
+        PyObject_HEAD
+        /* Type-specific fields go here. */
         CUdevice device;
     } PyCUdevice;
 
@@ -899,6 +959,11 @@
     }    
     
 static void init_objects() {
+
+    cuda_PyCUdeviceptrType.tp_new = PyType_GenericNew; 
+    if (PyType_Ready(&cuda_PyCUdeviceptrType) < 0)     
+        return;
+    
 
     cuda_PyCUdeviceType.tp_new = PyType_GenericNew; 
     if (PyType_Ready(&cuda_PyCUdeviceType) < 0)     

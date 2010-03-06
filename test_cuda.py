@@ -1,11 +1,13 @@
 import cuda
+from cuda import *
 
 import unittest
 
+cuda.cuInit()
+        
 class SmokeTest(unittest.TestCase):
 
     def test_start(self):
-        cuda.cuInit()
         print cuda.cuDriverGetVersion()
         if cuda.cuDeviceGetCount() > 0:
             dev = cuda.cuDeviceGet(0)
@@ -33,7 +35,11 @@ class SmokeTest(unittest.TestCase):
             # cuda.cuCtxDetach(h)
             
             self.assertEquals(ctx2, h)
-
+    
+    def test_module(self):
+        dev = cuDeviceGet(0)
+        ctx = cuCtxCreate(0,dev)
+        mod = cuModuleLoad("./sdk/vectorAdd.ptx")
         
 class CudaTestCase(unittest.TestCase):
 
