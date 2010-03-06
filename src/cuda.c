@@ -217,9 +217,8 @@ cuda_cuDeviceComputeCapability(PyObject *self, PyCUdevice* device) {
     int minor, mayor;
 
     if (!PyCUdevice_Check(device)){
-    	PyErr_Format(PyExc_TypeError,
-    	                     "argument must be a CUdevice, not %.80s",
-    	                     Py_TYPE(device)->tp_name);
+    	PyErr_SetString(PyExc_TypeError,
+    	                     "argument must be a CUdevice");
     	return NULL;
     }
     CU_CALL( cuDeviceComputeCapability, (&mayor, &minor, device->device));
@@ -235,11 +234,24 @@ cuda_cuDeviceGet(PyObject *self, PyObject* obj){
 	return (PyObject *)dev;
 }
 
+static PyObject *
+cuda_cuDeviceGetAttribute(PyObject *self, PyObject* args){
+	CUdevice_attribute attrib;
+	PyCUdevice *dev;
+	if (!PyArg_ParseTuple(args,"iO", &attrib, &dev)){
+		return NULL;
+	}
+	int pi;
+	CU_CALL(cuDeviceGetAttribute,(&pi, attrib, dev->device));
+	return PyInt_FromLong(pi);
+}
+
 static PyMethodDef CudaMethods[] = {
-    {"cuInit",  cuda_cuInit, METH_VARARGS,  "Execute a shell command."},
-    {"cuDeviceGet", cuda_cuDeviceGet, METH_O, ""},
-    {"cuDeviceComputeCapability", cuda_cuDeviceComputeCapability, METH_O,    ""},
-    {"cuDeviceGetCount", cuda_cuDeviceGetCount, METH_NOARGS, "" },
+    {"cuInit",  (PyCFunction)cuda_cuInit, METH_VARARGS,  "Execute a shell command."},
+    {"cuDeviceGet", (PyCFunction)cuda_cuDeviceGet, METH_O, ""},
+    {"cuDeviceGetAttribute", (PyCFunction)cuda_cuDeviceGetAttribute, METH_VARARGS, ""},
+    {"cuDeviceComputeCapability", (PyCFunction)cuda_cuDeviceComputeCapability, METH_O,    ""},
+    {"cuDeviceGetCount", (PyCFunction)cuda_cuDeviceGetCount, METH_NOARGS, "" },
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -265,4 +277,6 @@ initcuda(void)
     // cuDevice
     Py_INCREF(&cuda_cuDeviceType);
     PyModule_AddObject(m, "CUdevice", (PyObject *)&cuda_cuDeviceType);
+
+	#include "cuda_enums_gen.h";
 }
