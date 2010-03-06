@@ -1,6 +1,13 @@
 #include <Python.h>
 #include <cuda.h>
 
+#define CU_CALL(NAME,ARGS) \
+		CUresult res = NAME ARGS; \
+		if( res != CUDA_SUCCESS) { \
+			PyErr_SetString(CudaError, findErrorMsg(res)); \
+			return NULL; \
+		}
+
 static struct {
     CUresult id;
     const char *msg;
@@ -104,6 +111,11 @@ cuDevice_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 
     return (PyObject *)self;
 }
+
+
+/*********************************
+ ** Initialization
+ *********************************/
 static int
 cuDevice_init(PyCUdevice *self, PyObject *args, PyObject *kwds)
 {
@@ -119,6 +131,16 @@ cuDevice_init(PyCUdevice *self, PyObject *args, PyObject *kwds)
 	}
 	return 0;
 }
+/*********************************
+ ** Driver Version Query
+ *********************************/
+static PyObject *
+cuda_cuDriverGetVersion(PyObject *self, PyObject *args){
+	int driverVersion;
+	CU_CALL(cuDriverGetVersion, (&driverVersion));
+	return PyInt_FromLong(driverVersion);
+}
+
 static PyObject *
 cuDevice_compute_capability(PyCUdevice* self) {
     int minor, mayor;
@@ -204,12 +226,6 @@ cuda_cuDeviceGetCount(PyObject *self, PyObject *args)
     return valueobj;
 }
 
-#define CU_CALL(NAME,ARGS) \
-		CUresult res = NAME ARGS; \
-		if( res != CUDA_SUCCESS) { \
-			PyErr_SetString(CudaError, findErrorMsg(res)); \
-			return NULL; \
-		}
 
 #define PyCUdevice_Check(obj) (PyObject_TypeCheck((PyObject *)obj, &cuda_cuDeviceType))
 static PyObject *
@@ -248,6 +264,7 @@ cuda_cuDeviceGetAttribute(PyObject *self, PyObject* args){
 
 static PyMethodDef CudaMethods[] = {
     {"cuInit",  (PyCFunction)cuda_cuInit, METH_VARARGS,  "Execute a shell command."},
+    {"cuDriverGetVersion", cuda_cuDriverGetVersion, METH_NOARGS, ""},
     {"cuDeviceGet", (PyCFunction)cuda_cuDeviceGet, METH_O, ""},
     {"cuDeviceGetAttribute", (PyCFunction)cuda_cuDeviceGetAttribute, METH_VARARGS, ""},
     {"cuDeviceComputeCapability", (PyCFunction)cuda_cuDeviceComputeCapability, METH_O,    ""},

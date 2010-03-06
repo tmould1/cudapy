@@ -34,7 +34,11 @@ cudevice_attribute_enum ="""
 
 """
 
+enum_name = 'CUdevice_attribute'
+print "{"
 print "PyObject *obj;"
+total = 0
+enum = []
 for l in cudevice_attribute_enum.split('\n'):
     l = l.strip()
     if l:
@@ -47,3 +51,9 @@ for l in cudevice_attribute_enum.split('\n'):
         print "\tPy_INCREF(obj);"
         print '\tPyModule_AddObject(m,"%s", obj);'%name.strip()
         print "}"
+        total += 1
+        enum.append(name.strip())
+print 'obj =Py_BuildValue("%s",'%('s'*len(enum)), ','.join( '\"%s\"' % e for e in enum), ');'
+print "\tPy_INCREF(obj);"
+print '\tPyModule_AddObject(m,"%s", obj);'% enum_name
+print "}"
