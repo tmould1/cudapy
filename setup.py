@@ -5,6 +5,12 @@ import sys
 
 conf = {'CXXFLAGS' : [], 'LDFLAGS' : []}
 
+if sys.platform == "darwin" :
+    if "-arch" not in conf["CXXFLAGS"]:
+        conf["CXXFLAGS"].extend(['-arch', 'i386', '-m32'])
+    if "-arch" not in conf["LDFLAGS"]:
+            conf["LDFLAGS"].extend(['-arch', 'i386', '-m32'])
+
 include_dirs = ['/usr/local/cuda/include']
 libraries=['cuda']
 library_dirs=['/usr/local/cuda/lib']
