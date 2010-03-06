@@ -45,12 +45,11 @@ for l in cudevice_attribute_enum.split('\n'):
         name, doc = l.split(',',1)
         name, value = name.split('=')
 
-        print "{"
         print "\t/*",name, value,"*/"
-        print "\tobj = PyInt_FromLong((long)%s);" % name.strip()
-        print "\tPy_INCREF(obj);"
-        print '\tPyModule_AddObject(m,"%s", obj);'%name.strip()
-        print "}"
+        #print "\tobj = PyInt_FromLong((long)%s);" % name.strip()
+        #print "\tPy_INCREF(obj);"
+        #print '\tPyModule_AddObject(m,"%s", obj);'%name.strip()
+        print "\tPyModule_AddIntConstant(m,\"%s\", %d);" % (name.strip(),int(value))
         total += 1
         enum.append(name.strip())
 print 'obj =Py_BuildValue("%s",'%('s'*len(enum)), ','.join( '\"%s\"' % e for e in enum), ');'

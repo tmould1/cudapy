@@ -8,6 +8,8 @@
 			return NULL; \
 		}
 
+#include "cuda_objects_gen.h";
+
 static struct {
     CUresult id;
     const char *msg;
@@ -70,10 +72,9 @@ static PyObject *CudaError;
 
 /* End error message handling */
 
-// "Initializes the driver API and must be called before any other function from the driver API."
-// "Currently, the Flags parameter must be 0. "
-// "If cuInit() has not been called, any function from the driver API will return CUDA_ERROR_NOT_INITIALIZED"
-
+/*********************************
+ ** Initialization
+ *********************************/
 static PyObject *
 cuda_cuInit(PyObject *self, PyObject *args)
 {
@@ -88,49 +89,6 @@ cuda_cuInit(PyObject *self, PyObject *args)
     }
     Py_RETURN_NONE;
 }
-
-
-/*-----------------------------------------------------------------------------
- * cuDevice
- */
-
-typedef struct {
-    PyObject_HEAD
-    /* Type-specific fields go here. */
-    CUdevice device;
-} PyCUdevice;
-
-
-/*---------------------------------------------------------------------------*/
-static PyObject *
-cuDevice_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
-{
-    PyCUdevice *self;
-
-    self = (PyCUdevice *)type->tp_alloc(type, 0);
-
-    return (PyObject *)self;
-}
-
-
-/*********************************
- ** Initialization
- *********************************/
-static int
-cuDevice_init(PyCUdevice *self, PyObject *args, PyObject *kwds)
-{
-	int ordinal;
-	if (!PyArg_ParseTuple(args,"i",&ordinal)){
-		return -1;
-	}
-
-	CUresult res = cuDeviceGet(&self->device, ordinal);
-	if (res != CUDA_SUCCESS){
-		PyErr_SetString(CudaError, findErrorMsg(res));
-		return -1;
-	}
-	return 0;
-}
 /*********************************
  ** Driver Version Query
  *********************************/
@@ -141,73 +99,19 @@ cuda_cuDriverGetVersion(PyObject *self, PyObject *args){
 	return PyInt_FromLong(driverVersion);
 }
 
+/************************************
+ **
+ **    Device management
+ **
+ ***********************************/
 static PyObject *
-cuDevice_compute_capability(PyCUdevice* self) {
-    int minor, mayor;
-    CUresult res;
-    PyObject *result;
-    res = cuDeviceComputeCapability(&mayor, &minor, self->device);
-    if (res != CUDA_SUCCESS){
-		PyErr_SetString(CudaError, findErrorMsg(res));
-    }
-    result  = Py_BuildValue("ii", mayor, minor);
-    if (result == NULL)
-    	return NULL;
-    Py_INCREF(result);
-    return result;
+cuda_cuDeviceGet(PyObject *self, PyObject* obj){
+	PyCUdevice *dev = (PyCUdevice*) _PyObject_New((PyTypeObject *)&cuda_PyCUdeviceType);
+	if (!dev) return NULL;
+	int ordinal = PyInt_AsLong(obj);
+	CU_CALL(cuDeviceGet,(&dev->device,ordinal));
+	return (PyObject *)dev;
 }
-
-static PyMethodDef cuDevice_methods[] = {
-    {"ComputeCapability", (PyCFunction)cuDevice_compute_capability, METH_NOARGS,
-     "Return the name, combining the first and last name"
-    },
-    {NULL}  /* Sentinel */
-};
-
-
-static PyTypeObject cuda_cuDeviceType = {
-    PyObject_HEAD_INIT(NULL)
-    0,                         /*ob_size*/
-    "cuda.CUdevice",           /*tp_name*/
-    sizeof(PyCUdevice),/*tp_basicsize*/
-    0,                         /*tp_itemsize*/
-    0,                         /*tp_dealloc*/
-    0,                         /*tp_print*/
-    0,                         /*tp_getattr*/
-    0,                         /*tp_setattr*/
-    0,                         /*tp_compare*/
-    0,                         /*tp_repr*/
-    0,                         /*tp_as_number*/
-    0,                         /*tp_as_sequence*/
-    0,                         /*tp_as_mapping*/
-    0,                         /*tp_hash */
-    0,                         /*tp_call*/
-    0,                         /*tp_str*/
-    0,                         /*tp_getattro*/
-    0,                         /*tp_setattro*/
-    0,                         /*tp_as_buffer*/
-    Py_TPFLAGS_DEFAULT| Py_TPFLAGS_BASETYPE, /*tp_flags*/
-    "cuDevice     ",           /* tp_doc */
-    0,		               /* tp_traverse */
-    0,		               /* tp_clear */
-    0,		               /* tp_richcompare */
-    0,		               /* tp_weaklistoffset */
-    0,		               /* tp_iter */
-    0,		               /* tp_iternext */
-    cuDevice_methods,                     /* tp_methods */
-    0,                     /* tp_members */
-    0,                         /* tp_getset */
-    0,                         /* tp_base */
-    0,                         /* tp_dict */
-    0,                         /* tp_descr_get */
-    0,                         /* tp_descr_set */
-    0,                         /* tp_dictoffset */
-    (initproc)cuDevice_init,      /* tp_init */
-    0,                         /* tp_alloc */
-    cuDevice_new,   /* tp_new */
-};
-
-
 
 static PyObject *
 cuda_cuDeviceGetCount(PyObject *self, PyObject *args)
@@ -226,8 +130,18 @@ cuda_cuDeviceGetCount(PyObject *self, PyObject *args)
     return valueobj;
 }
 
+// CUresult  CUDAAPI cuDeviceGetName(char *name, int len, CUdevice dev);
+static PyObject *
+cuda_cuDeviceGetName(PyObject *self, PyCUdevice* device) {
+    if (!PyCUdevice_Check(device)){
+    	PyErr_SetString(PyExc_TypeError, "argument must be a CUdevice");
+    	return NULL;
+    }
+    char name_buff[256] = {0};
+    CU_CALL( cuDeviceGetName, (name_buff, 256, device->device));
+    return PyString_FromStringAndSize(name_buff, 256);
+}
 
-#define PyCUdevice_Check(obj) (PyObject_TypeCheck((PyObject *)obj, &cuda_cuDeviceType))
 static PyObject *
 cuda_cuDeviceComputeCapability(PyObject *self, PyCUdevice* device) {
     int minor, mayor;
@@ -241,14 +155,18 @@ cuda_cuDeviceComputeCapability(PyObject *self, PyCUdevice* device) {
     return Py_BuildValue("ii", mayor, minor);
 }
 
+//CUresult  CUDAAPI cuDeviceTotalMem(unsigned int *bytes, CUdevice dev);
 static PyObject *
-cuda_cuDeviceGet(PyObject *self, PyObject* obj){
-	PyCUdevice *dev = (PyCUdevice*) _PyObject_New((PyTypeObject *)&cuda_cuDeviceType);
-	if (!dev) return NULL;
-	int ordinal = PyInt_AsLong(obj);
-	CU_CALL(cuDeviceGet,(&dev->device,ordinal));
-	return (PyObject *)dev;
+cuda_cuDeviceTotalMem(PyObject *self, PyCUdevice* device) {
+    unsigned int bytes;
+    if (!PyCUdevice_Check(device)){
+    	PyErr_SetString(PyExc_TypeError,"argument must be a CUdevice");
+    	return NULL;
+    }
+    CU_CALL( cuDeviceTotalMem, (&bytes, device->device));
+    return PyInt_FromLong(bytes);
 }
+//CUresult  CUDAAPI cuDeviceGetProperties(CUdevprop *prop, CUdevice dev);
 
 static PyObject *
 cuda_cuDeviceGetAttribute(PyObject *self, PyObject* args){
@@ -263,12 +181,17 @@ cuda_cuDeviceGetAttribute(PyObject *self, PyObject* args){
 }
 
 static PyMethodDef CudaMethods[] = {
+	/* Initialization */
     {"cuInit",  (PyCFunction)cuda_cuInit, METH_VARARGS,  "Execute a shell command."},
+    /* Driver Version Query */
     {"cuDriverGetVersion", cuda_cuDriverGetVersion, METH_NOARGS, ""},
+    /*Device Management*/
     {"cuDeviceGet", (PyCFunction)cuda_cuDeviceGet, METH_O, ""},
-    {"cuDeviceGetAttribute", (PyCFunction)cuda_cuDeviceGetAttribute, METH_VARARGS, ""},
-    {"cuDeviceComputeCapability", (PyCFunction)cuda_cuDeviceComputeCapability, METH_O,    ""},
     {"cuDeviceGetCount", (PyCFunction)cuda_cuDeviceGetCount, METH_NOARGS, "" },
+    {"cuDeviceGetName", (PyCFunction)cuda_cuDeviceGetName, METH_O, "" },
+    {"cuDeviceComputeCapability", (PyCFunction)cuda_cuDeviceComputeCapability, METH_O,    ""},
+    {"cuDeviceTotalMem", (PyCFunction)cuda_cuDeviceTotalMem, METH_O,    ""},
+    {"cuDeviceGetAttribute", (PyCFunction)cuda_cuDeviceGetAttribute, METH_VARARGS, ""},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
@@ -278,22 +201,17 @@ initcuda(void)
 {
     PyObject *m;
 
-    //cuDevice
-    if (PyType_Ready(&cuda_cuDeviceType) < 0)
-        return;
+    init_objects();
 
     m = Py_InitModule("cuda", CudaMethods);
     if (m == NULL)
         return;
-
 
     CudaError = PyErr_NewException("cuda.error", NULL, NULL);
     Py_INCREF(CudaError);
     PyModule_AddObject(m, "error", CudaError);
 
     // cuDevice
-    Py_INCREF(&cuda_cuDeviceType);
-    PyModule_AddObject(m, "CUdevice", (PyObject *)&cuda_cuDeviceType);
-
+    init_types(m);
 	#include "cuda_enums_gen.h";
 }
