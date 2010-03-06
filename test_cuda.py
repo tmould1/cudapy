@@ -16,14 +16,23 @@ class SmokeTest(unittest.TestCase):
                 value = getattr(cuda,name)
                 print name,
                 print cuda.cuDeviceGetAttribute(value,dev);
+
             ctx = cuda.cuCtxCreate(0,dev)
             cuda.cuCtxDestroy(ctx)
+            # No Context
             self.assertRaises(cuda.error, cuda.cuCtxAttach, 0)
             self.assertRaises(cuda.error ,cuda.cuCtxDetach, ctx)
+            # New one
             ctx = cuda.cuCtxCreate(0,dev)
-            self.assertEquals(cuda.cuCtxGetDevice(), dev)
-            h = cuda.cuCtxAttach(0)
-            cuda.cuCtxDetach(h)
+            cuda.cuCtxSynchronize()
+            cuda.cuCtxPushCurrent(ctx)
+            ctx2 = cuda.cuCtxPopCurrent()
+            self.assertEquals(ctx, ctx2)
+            # self.assertEquals(cuda.cuCtxGetDevice(), dev)
+            # h = cuda.cuCtxAttach(0)
+            # cuda.cuCtxDetach(h)
+            
+            self.assertEquals(ctx2, h)
 
         
 class CudaTestCase(unittest.TestCase):

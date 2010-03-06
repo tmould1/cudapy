@@ -294,6 +294,8 @@ initcuda(void)
     Py_INCREF(CudaError);
     PyModule_AddObject(m, "error", CudaError);
 
+    PyModule_AddIntConstant(m,"CUDA_VERSION", CUDA_VERSION);
+
     init_types(m);
     init_enums(m);
 }
