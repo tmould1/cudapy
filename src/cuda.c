@@ -311,6 +311,173 @@ cuda_cuMemFree(PyObject *self, PyCUdeviceptr* dptr){
 	Py_RETURN_NONE;
 }
 
+//CUresult  CUDAAPI cuMemcpyDtoH (void *dstHost, CUdeviceptr srcDevice, unsigned int ByteCount );
+static PyObject *
+cuda_cuMemcpyHtoD(PyObject *self, PyObject *args){
+	PyCUdeviceptr *dptr;
+	PyObject *src;
+	if (!PyArg_ParseTuple(args,"OO", &dptr, &src)){
+		return NULL;
+	}
+	PyCUdeviceptr_Check(dptr);
+	if (!PyObject_CheckReadBuffer(src)){
+		PyErr_Format(PyExc_TypeError,"Objects of type '%s' can not "
+			                             "be used as buffer",
+			                              src->ob_type->tp_name);
+		return NULL;
+	}
+	Py_ssize_t buffer_len;
+	const void *buf;
+	if (PyObject_AsReadBuffer(src, &buf, &buffer_len) != 0){
+		return NULL;
+	}
+	unsigned int byte_count = (unsigned int)buffer_len;
+    CU_CALL(cuMemcpyHtoD, (dptr->deviceptr, buf, byte_count));
+
+	Py_RETURN_NONE;
+}
+
+//CUresult  CUDAAPI cuMemcpyDtoH (void *dstHost, CUdeviceptr srcDevice, unsigned int ByteCount );
+static PyObject *
+cuda_cuMemcpyDtoH(PyObject *self, PyObject *args){
+	PyCUdeviceptr *dptr;
+	PyObject *src;
+	if (!PyArg_ParseTuple(args,"OO", &src, &dptr)){
+		return NULL;
+	}
+	PyCUdeviceptr_Check(dptr);
+//	if (!PyObject_Check(src)){
+//		PyErr_Format(PyExc_TypeError,"Objects of type '%s' can not "
+//			                             "be used as write buffer",
+//			                              src->ob_type->tp_name);
+//		return NULL;
+//	}
+	Py_ssize_t buffer_len;
+	void *buf;
+	if (PyObject_AsWriteBuffer(src, &buf, &buffer_len) != 0){
+		return NULL;
+	}
+	unsigned int byte_count = (unsigned int)buffer_len;
+    CU_CALL(cuMemcpyDtoH, (buf, dptr->deviceptr, byte_count));
+
+	Py_RETURN_NONE;
+}
+
+/************************************
+ **
+ **    Function management
+ **
+ ***********************************/
+
+
+//CUresult CUDAAPI cuFuncSetBlockShape (CUfunction hfunc, int x, int y, int z);
+static PyObject *
+cuda_cuFuncSetBlockShape(PyObject *self, PyObject* args){
+	PyCUfunction *func;
+	int x,y,z;
+	if (!PyArg_ParseTuple(args,"Oiii", &func, &x, &y, &z)){
+		return NULL;
+	}
+	PyCUfunction_Check(func);
+	CU_CALL(cuFuncSetBlockShape, (func->function, x,y,z));
+	return (PyObject*)func;
+}
+//CUresult CUDAAPI cuFuncSetSharedSize (CUfunction hfunc, unsigned int bytes);
+//CUresult CUDAAPI cuFuncGetAttribute (int *pi, CUfunction_attribute attrib, CUfunction hfunc);
+
+/************************************
+ **
+ **    Parameter management
+ **
+ ***********************************/
+
+//CUresult  CUDAAPI cuParamSetSize (CUfunction hfunc, unsigned int numbytes);
+static PyObject *
+cuda_cuParamSetSize(PyObject *self, PyObject *args){
+	PyCUfunction *func;
+	unsigned int numbytes;
+	if (!PyArg_ParseTuple(args,"OI", &func, &numbytes)){
+		return NULL;
+	}
+	PyCUfunction_Check(func);
+	CU_CALL(cuParamSetSize, (func->function, numbytes));
+	Py_RETURN_NONE;
+}
+//CUresult  CUDAAPI cuParamSeti    (CUfunction hfunc, int offset, unsigned int value);
+static PyObject *
+cuda_cuParamSeti(PyObject *self, PyObject *args){
+	PyCUfunction *func;
+	int offset;
+	unsigned int value;
+	if (!PyArg_ParseTuple(args,"OiI", &func, &offset, &value)){
+		return NULL;
+	}
+	PyCUfunction_Check(func);
+	CU_CALL(cuParamSeti, (func->function, offset, value));
+	return PyInt_FromLong(sizeof(int));
+}
+//CUresult  CUDAAPI cuParamSetf    (CUfunction hfunc, int offset, float value);
+static PyObject *
+cuda_cuParamSetf(PyObject *self, PyObject *args){
+	PyCUfunction *func;
+	int offset;
+	float value;
+	if (!PyArg_ParseTuple(args,"OiI", &func, &offset, &value)){
+		return NULL;
+	}
+	PyCUfunction_Check(func);
+	CU_CALL(cuParamSetf, (func->function, offset, value));
+	return PyInt_FromLong(sizeof(float));
+}
+
+// Invoke kernel
+#define ALIGN_UP(offset, alignment) \
+    (offset) = ((offset) + (alignment) - 1) & ~((alignment) - 1)
+
+//CUresult  CUDAAPI cuParamSetv    (CUfunction hfunc, int offset, void *ptr, unsigned int numbytes);
+static PyObject *
+cuda_cuParamSetv(PyObject *self, PyObject *args){
+	PyCUfunction *func;
+	int offset;
+	PyObject *value;
+
+	if (!PyArg_ParseTuple(args,"OiO", &func, &offset, &value)){
+		return NULL;
+	}
+	PyCUfunction_Check(func);
+
+    void *ptr = (void*)(size_t)((PyCUdeviceptr*)value)->deviceptr;
+    ALIGN_UP(offset, __alignof(ptr));
+
+	if (PyCUdeviceptr_Test(value)){
+		CU_CALL(cuParamSetv, (func->function, offset, &ptr , sizeof(ptr)));
+	}
+
+	return PyInt_FromLong(sizeof(ptr));
+}
+//CUresult  CUDAAPI cuParamSetTexRef(CUfunction hfunc, int texunit, CUtexref hTexRef);
+
+/************************************
+ **
+ **    Launch functions
+ **
+ ***********************************/
+
+//CUresult CUDAAPI cuLaunch ( CUfunction f );
+//CUresult CUDAAPI cuLaunchGrid (CUfunction f, int grid_width, int grid_height);
+//CUresult CUDAAPI cuLaunchGridAsync( CUfunction f, int grid_width, int grid_height, CUstream hStream );
+static PyObject *
+cuda_cuLaunchGrid(PyObject *self, PyObject *args){
+	PyCUfunction *func;
+	int grid_width,grid_height;
+	if (!PyArg_ParseTuple(args,"Oii", &func, &grid_width, &grid_height)){
+		return NULL;
+	}
+	PyCUfunction_Check(func);
+	CU_CALL(cuLaunchGrid, (func->function,grid_width,grid_height));
+	return (PyObject*)func;
+}
+
 static PyMethodDef CudaMethods[] = {
 	/* Initialization */
     {"cuInit",  (PyCFunction)cuda_cuInit, METH_VARARGS,  "Execute a shell command."},
@@ -342,6 +509,18 @@ static PyMethodDef CudaMethods[] = {
     /* Memory Management */
     {"cuMemAlloc", (PyCFunction) cuda_cuMemAlloc, METH_O, ""},
     {"cuMemFree",  (PyCFunction) cuda_cuMemFree, METH_O,  ""},
+    {"cuMemcpyHtoD", (PyCFunction) cuda_cuMemcpyHtoD, METH_VARARGS, ""},
+    {"cuMemcpyDtoH", (PyCFunction) cuda_cuMemcpyDtoH, METH_VARARGS, ""},
+
+    {"cuFuncSetBlockShape", (PyCFunction) cuda_cuFuncSetBlockShape, METH_VARARGS, "" },
+
+    /* Parameter management */
+    {"cuParamSetSize",(PyCFunction) cuda_cuParamSetSize, METH_VARARGS, ""},
+    {"cuParamSeti",(PyCFunction) cuda_cuParamSeti, METH_VARARGS, ""},
+    {"cuParamSetf",(PyCFunction) cuda_cuParamSetf, METH_VARARGS, ""},
+    {"cuParamSetv",(PyCFunction) cuda_cuParamSetv, METH_VARARGS, ""},
+
+    {"cuLaunchGrid", (PyCFunction)cuda_cuLaunchGrid, METH_VARARGS, ""},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

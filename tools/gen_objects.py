@@ -26,7 +26,7 @@ TEMPLATE=    """
     #define Py%(name)s_Check(obj) \\
         {                             \\
         if (!PyObject_TypeCheck((PyObject *)obj, &cuda_Py%(name)sType)){ \\
-            PyErr_SetString(PyExc_TypeError,\"argument must be a %(name)s\");              \\
+            PyErr_Format(PyExc_TypeError,\"Object of type '%%s' can not be used as %(name)s\",obj->ob_type->tp_name);\\
             return NULL; \\
         } \\
         } 

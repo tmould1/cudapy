@@ -9,7 +9,7 @@
     #define PyCUdeviceptr_Check(obj) \
         {                             \
         if (!PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUdeviceptrType)){ \
-            PyErr_SetString(PyExc_TypeError,"argument must be a CUdeviceptr");              \
+            PyErr_Format(PyExc_TypeError,"Object of type '%s' can not be used as CUdeviceptr",obj->ob_type->tp_name);\
             return NULL; \
         } \
         } 
@@ -69,7 +69,7 @@
     #define PyCUdevice_Check(obj) \
         {                             \
         if (!PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUdeviceType)){ \
-            PyErr_SetString(PyExc_TypeError,"argument must be a CUdevice");              \
+            PyErr_Format(PyExc_TypeError,"Object of type '%s' can not be used as CUdevice",obj->ob_type->tp_name);\
             return NULL; \
         } \
         } 
@@ -129,7 +129,7 @@
     #define PyCUcontext_Check(obj) \
         {                             \
         if (!PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUcontextType)){ \
-            PyErr_SetString(PyExc_TypeError,"argument must be a CUcontext");              \
+            PyErr_Format(PyExc_TypeError,"Object of type '%s' can not be used as CUcontext",obj->ob_type->tp_name);\
             return NULL; \
         } \
         } 
@@ -189,7 +189,7 @@
     #define PyCUmodule_Check(obj) \
         {                             \
         if (!PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUmoduleType)){ \
-            PyErr_SetString(PyExc_TypeError,"argument must be a CUmodule");              \
+            PyErr_Format(PyExc_TypeError,"Object of type '%s' can not be used as CUmodule",obj->ob_type->tp_name);\
             return NULL; \
         } \
         } 
@@ -249,7 +249,7 @@
     #define PyCUfunction_Check(obj) \
         {                             \
         if (!PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUfunctionType)){ \
-            PyErr_SetString(PyExc_TypeError,"argument must be a CUfunction");              \
+            PyErr_Format(PyExc_TypeError,"Object of type '%s' can not be used as CUfunction",obj->ob_type->tp_name);\
             return NULL; \
         } \
         } 
@@ -309,7 +309,7 @@
     #define PyCUarray_Check(obj) \
         {                             \
         if (!PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUarrayType)){ \
-            PyErr_SetString(PyExc_TypeError,"argument must be a CUarray");              \
+            PyErr_Format(PyExc_TypeError,"Object of type '%s' can not be used as CUarray",obj->ob_type->tp_name);\
             return NULL; \
         } \
         } 
@@ -369,7 +369,7 @@
     #define PyCUtexref_Check(obj) \
         {                             \
         if (!PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUtexrefType)){ \
-            PyErr_SetString(PyExc_TypeError,"argument must be a CUtexref");              \
+            PyErr_Format(PyExc_TypeError,"Object of type '%s' can not be used as CUtexref",obj->ob_type->tp_name);\
             return NULL; \
         } \
         } 
@@ -429,7 +429,7 @@
     #define PyCUevent_Check(obj) \
         {                             \
         if (!PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUeventType)){ \
-            PyErr_SetString(PyExc_TypeError,"argument must be a CUevent");              \
+            PyErr_Format(PyExc_TypeError,"Object of type '%s' can not be used as CUevent",obj->ob_type->tp_name);\
             return NULL; \
         } \
         } 
@@ -489,7 +489,7 @@
     #define PyCUstream_Check(obj) \
         {                             \
         if (!PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUstreamType)){ \
-            PyErr_SetString(PyExc_TypeError,"argument must be a CUstream");              \
+            PyErr_Format(PyExc_TypeError,"Object of type '%s' can not be used as CUstream",obj->ob_type->tp_name);\
             return NULL; \
         } \
         } 
@@ -549,7 +549,7 @@
     #define PyCUgraphicsResource_Check(obj) \
         {                             \
         if (!PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUgraphicsResourceType)){ \
-            PyErr_SetString(PyExc_TypeError,"argument must be a CUgraphicsResource");              \
+            PyErr_Format(PyExc_TypeError,"Object of type '%s' can not be used as CUgraphicsResource",obj->ob_type->tp_name);\
             return NULL; \
         } \
         } 
@@ -609,7 +609,7 @@
     #define PyCUDA_MEMCPY2D_Check(obj) \
         {                             \
         if (!PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUDA_MEMCPY2DType)){ \
-            PyErr_SetString(PyExc_TypeError,"argument must be a CUDA_MEMCPY2D");              \
+            PyErr_Format(PyExc_TypeError,"Object of type '%s' can not be used as CUDA_MEMCPY2D",obj->ob_type->tp_name);\
             return NULL; \
         } \
         } 
@@ -669,7 +669,7 @@
     #define PyCUDA_MEMCPY3D_Check(obj) \
         {                             \
         if (!PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUDA_MEMCPY3DType)){ \
-            PyErr_SetString(PyExc_TypeError,"argument must be a CUDA_MEMCPY3D");              \
+            PyErr_Format(PyExc_TypeError,"Object of type '%s' can not be used as CUDA_MEMCPY3D",obj->ob_type->tp_name);\
             return NULL; \
         } \
         } 
@@ -729,7 +729,7 @@
     #define PyCUDA64_MEMCPY3D_Check(obj) \
         {                             \
         if (!PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUDA64_MEMCPY3DType)){ \
-            PyErr_SetString(PyExc_TypeError,"argument must be a CUDA64_MEMCPY3D");              \
+            PyErr_Format(PyExc_TypeError,"Object of type '%s' can not be used as CUDA64_MEMCPY3D",obj->ob_type->tp_name);\
             return NULL; \
         } \
         } 
@@ -789,7 +789,7 @@
     #define PyCUDA_ARRAY_DESCRIPTOR_Check(obj) \
         {                             \
         if (!PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUDA_ARRAY_DESCRIPTORType)){ \
-            PyErr_SetString(PyExc_TypeError,"argument must be a CUDA_ARRAY_DESCRIPTOR");              \
+            PyErr_Format(PyExc_TypeError,"Object of type '%s' can not be used as CUDA_ARRAY_DESCRIPTOR",obj->ob_type->tp_name);\
             return NULL; \
         } \
         } 
@@ -849,7 +849,7 @@
     #define PyCUDA_ARRAY3D_DESCRIPTOR_Check(obj) \
         {                             \
         if (!PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUDA_ARRAY3D_DESCRIPTORType)){ \
-            PyErr_SetString(PyExc_TypeError,"argument must be a CUDA_ARRAY3D_DESCRIPTOR");              \
+            PyErr_Format(PyExc_TypeError,"Object of type '%s' can not be used as CUDA_ARRAY3D_DESCRIPTOR",obj->ob_type->tp_name);\
             return NULL; \
         } \
         } 
@@ -909,7 +909,7 @@
     #define PyCUdevprop_Check(obj) \
         {                             \
         if (!PyObject_TypeCheck((PyObject *)obj, &cuda_PyCUdevpropType)){ \
-            PyErr_SetString(PyExc_TypeError,"argument must be a CUdevprop");              \
+            PyErr_Format(PyExc_TypeError,"Object of type '%s' can not be used as CUdevprop",obj->ob_type->tp_name);\
             return NULL; \
         } \
         } 
