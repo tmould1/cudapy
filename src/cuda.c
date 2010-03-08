@@ -81,14 +81,9 @@ static PyObject *
 cuda_cuInit(PyObject *self, PyObject *args)
 {
     unsigned int flags = 0;
-
     if (!PyArg_ParseTuple(args, "|I", &flags))
         return NULL;
-    CUresult res = cuInit(flags);
-    if(res != CUDA_SUCCESS){
-    	PyErr_SetString(CudaError, findErrorMsg(res));
-        return NULL;
-    }
+    CU_CALL(cuInit,(flags));
     Py_RETURN_NONE;
 }
 /*********************************
@@ -216,17 +211,15 @@ cuda_cuCtxAttach(PyObject *self, PyObject* flags){
 
 static PyObject *
 cuda_cuCtxDetach(PyObject *self, PyCUcontext* ctx){
-	unsigned int flags;
 	PyCUcontext_Check(ctx);
 	CU_CALL(cuCtxDetach,(ctx->context));
 	Py_RETURN_NONE;
 }
-
+// CUresult  CUDAAPI cuCtxPushCurrent( CUcontext ctx );
 static PyObject *
-cuda_cuCtxPushCurrent(PyObject *self, PyCUcontext* ctx){
-	unsigned int flags;
+cuda_cuCtxPushCurrent(PyObject *self, PyObject* ctx){
 	PyCUcontext_Check(ctx);
-	CU_CALL(cuCtxPushCurrent,(ctx->context));
+	CU_CALL(cuCtxPushCurrent,(((PyCUcontext*)ctx)->context));
 	Py_RETURN_NONE;
 }
 static PyObject *
@@ -281,6 +274,27 @@ cuda_cuModuleGetFunction(PyObject *self, PyObject* args){
 	PyCUfunction *func = NEW_PyCUfunction;
 	CU_CALL(cuModuleGetFunction, (&func->function, mod->module, func_name));
 	return (PyObject*)func;
+}
+//CUresult  CUDAAPI cuModuleLoadDataEx(CUmodule *module, const void *image, unsigned int numOptions, CUjit_option *options, void **optionValues);
+//static PyObject *
+//cuda_cuModuleLoadDataEx(PyObject *self, PyObject* args){
+//	PyCUmodule *mod;
+//	const char *func_name;
+//	if (!PyArg_ParseTuple(args,"OOOO", &mod, &func_name)){
+//		return NULL;
+//	}
+//	PyCUmodule_Check(mod);
+//	PyCUfunction *func = NEW_PyCUfunction;
+//	CU_CALL(cuModuleGetFunction, (&func->function, mod->module, func_name));
+//	return (PyObject*)func;
+//}
+
+/* CUresult  CUDAAPI cuModuleUnload(CUmodule hmod) */
+static PyObject *
+cuda_cuModuleUnload(PyObject *self, PyObject* mod){
+	PyCUmodule_Check(mod);
+	CU_CALL(cuModuleUnload, (((PyCUmodule*)mod)->module));
+	Py_RETURN_NONE;
 }
 
 /************************************
@@ -505,6 +519,7 @@ static PyMethodDef CudaMethods[] = {
     /* Module Management */
     {"cuModuleLoad", (PyCFunction) cuda_cuModuleLoad, METH_O, ""},
     {"cuModuleGetFunction", (PyCFunction) cuda_cuModuleGetFunction, METH_VARARGS, ""},
+    {"cuModuleUnload", (PyCFunction) cuda_cuModuleUnload, METH_O, ""},
 
     /* Memory Management */
     {"cuMemAlloc", (PyCFunction) cuda_cuMemAlloc, METH_O, ""},

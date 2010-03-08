@@ -87,11 +87,9 @@ def main():
     threadsPerBlock = 256
     blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock
     cuFuncSetBlockShape(vecAdd, threadsPerBlock, 1, 1)
-    try:
-        cuLaunchGrid(vecAdd, blocksPerGrid, 1)
-        cuCtxSynchronize()
-    except error, msg:
-        print msg
+
+    cuLaunchGrid(vecAdd, blocksPerGrid, 1)
+    cuCtxSynchronize()
 
     # Copy result from device memory to host memory
     # h_C contains the result in host memory
@@ -100,6 +98,8 @@ def main():
     cuMemFree(d_A)
     cuMemFree(d_B)
     cuMemFree(d_C)
+    
+    cuCtxDetach(cuContext)
     
     # Verify result
     for i in xrange(N):
@@ -175,16 +175,14 @@ def main():
 #        return true;
 #     }
 # }
-main()
 
-# // Parse program arguments
-# void ParseArguments(int argc, char** argv)
-# {
-#     for (int i = 0; i < argc; ++i)
-#         if (strcmp(argv[i], "--noprompt") == 0 ||
-#             strcmp(argv[i], "-noprompt") == 0) 
-#         {
-#             noprompt = true;
-#             break;
-#         }
-# }
+            
+# Parse program arguments
+def ParseArguments(argv):
+    global noprompt
+    for value in argv:
+        if value in ("--noprompt","-noprompt"):
+            noprompt = true
+
+if __name__ == '__main__':
+    main()
